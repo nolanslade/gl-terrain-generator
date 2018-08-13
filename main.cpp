@@ -18,30 +18,30 @@ Terrain Generator
 #  include <GL/freeglut.h>
 #endif
 
-#define CIRCLE_MIN		5 		// Minimum size of our circle for our circles algorithm
+#define CIRCLE_MIN	5 		// Minimum size of our circle for our circles algorithm
 #define CIRCLE_RANGE	10 		// Range for our circle size, thus the circle will be 25 + (0 to range-1)
-#define MAX_DISP 		5 		// Maximum displacement used by the terrain generation algorithms
+#define MAX_DISP 	5 		// Maximum displacement used by the terrain generation algorithms
 #define VERT_SPACING	3		// Distance between vertices
 
 /* Terrain Globals */
-float *heightMap;							// Array for the height values of our terrain
-float *triangleNormals;						// Array for normals used for lighting the terrain (triangle strip)
-float *quadNormals;							// Array for normals used for lighting the terrain (quad strip)
-float *triangleVertexNormals;				// Vertex normals (triangle-strip)
-float *quadVertexNormals;					// Vertex normals (quad-strip)
-int terrainWidth;							// Width of the terrain (number of vertices in x direction)
-int terrainDepth;							// Depth of the terrain (number of vertices in z direction)
-int terrainComplexity = 1000;				// Essentially how many times the circles algorithm will be run, user-selectable to generate different terrain styles
-char wireFrameMode = 's';					// Toggle for rendering mode. 's' for solid, 'w' for wireframe, 'b' for both
-char shadeMode = 'f';						// Initially flat, 'f', 'g' for gourard shading
-char algorithmMode = 'c';					// Initially set to 'c' for circles algorithm, 'f' for fault algorithm, 'd' for particle deposition
-bool lightsOff = false;						// Toggle for lighting, initially there is no lighting, toggle with L
-char stripMode = 't';						// Toggle for strip mode; ie whether the program renders on triangle strip or quad strip mode
-float maxHeight;							// Used for non-lighting grayscale colouring and for topographic colouring
-float minHeight;							// Used for non-lighting grayscale colouring and for topographic colouring
-float terrainRotationX = 0;					// Used to rotate the terrain
+float *heightMap;				// Array for the height values of our terrain
+float *triangleNormals;				// Array for normals used for lighting the terrain (triangle strip)
+float *quadNormals;				// Array for normals used for lighting the terrain (quad strip)
+float *triangleVertexNormals;			// Vertex normals (triangle-strip)
+float *quadVertexNormals;			// Vertex normals (quad-strip)
+int terrainWidth;				// Width of the terrain (number of vertices in x direction)
+int terrainDepth;				// Depth of the terrain (number of vertices in z direction)
+int terrainComplexity = 1000;			// Essentially how many times the circles algorithm will be run, user-selectable to generate different terrain styles
+char wireFrameMode = 's';			// Toggle for rendering mode. 's' for solid, 'w' for wireframe, 'b' for both
+char shadeMode = 'f';				// Initially flat, 'f', 'g' for gourard shading
+char algorithmMode = 'c';			// Initially set to 'c' for circles algorithm, 'f' for fault algorithm, 'd' for particle deposition
+bool lightsOff = false;				// Toggle for lighting, initially there is no lighting, toggle with L
+char stripMode = 't';				// Toggle for strip mode; ie whether the program renders on triangle strip or quad strip mode
+float maxHeight;				// Used for non-lighting grayscale colouring and for topographic colouring
+float minHeight;				// Used for non-lighting grayscale colouring and for topographic colouring
+float terrainRotationX = 0;			// Used to rotate the terrain
 float terrainRotationY = 0;
-bool topographicEnabled = false;			// Used for bonus feature: advanced topographic colouring
+bool topographicEnabled = false;		// Used for bonus feature: advanced topographic colouring
 float baseGreen[] = {0.168, 0.388, 0.196};	// Topographic green (lowest point)
 
 /* Camera Globals */
@@ -52,14 +52,14 @@ float camSpeed 		= 10.0f;
 
 /* Lighting Globals */
 // Near corner of terrain
-float light_pos0 [] = { 0, 0, 0, 1 }; 		// x,y,z, w = 1 = point light
+float light_pos0 [] 	= { 0, 0, 0, 1 }; 		// x,y,z, w = 1 = point light
 float amb0 [4]  	= { 0.2, 0.2, 1, 1 }; 
 float diff0 [4] 	= { 0, 0, 1, 1 };
 float spec0 [4] 	= { 0.5, 0.5, 1, 1 }; 
 float lightSpeed 	= 10.0f;
 
 // Far corner of terrain
-float light_pos1 [] = { 0, 0, 0, 1 }; 		// x,y,z, w = 1 = point light
+float light_pos1 [] 	= { 0, 0, 0, 1 }; 		// x,y,z, w = 1 = point light
 float amb1 [4]  	= { 0.2, 1, 0.2, 1 }; 
 float diff1 [4] 	= { 0, 1, 0, 1 };
 float spec1 [4] 	= { 0.5, 1, 0.5, 1 }; 
@@ -74,7 +74,7 @@ float whiteplastic_shininess 	= 0.23 * 128;
 float redplastic_ambient [] 	= { 0.0f, 0.0f, 0.0f, 1.0 };
 float redplastic_diffuse [] 	= { 0.5, 0.0f, 0.0f, 1.0 };
 float redplastic_specular [] 	= { 0.7, 0.6, 0.6, 1.0 };
-float redplastic_shininess 		= 0.25 * 128;
+float redplastic_shininess 	= 0.25 * 128;
 
 
 /*
@@ -106,19 +106,19 @@ int getNormalIndex (int x, int z, char type, bool first) {
 /* Once the surface normals are calculated, we calculate vertex normals */
 void setVertexNormals () {
 	printf("Calculating vertex normals...\n");
-	float vertexNormal[] = {0, 0, 0};		// Our final result for each vertex
-	float one[] = {0, 0, 0};				// First vector used to calculate vertex normal
-	int index1 = 0;
-	float two[] = {0, 0, 0};				// Second vector used to calculate vertex normal
-	int index2 = 0;
-	float three[] = {0, 0, 0};				// Third vector used to calculate vertex normal
-	int index3 = 0;
-	float four[] = {0, 0, 0};				// Fourth vector used to calculate vertex normal
-	int index4 = 0;
-	float five[] = {0, 0, 0};				// Fifth vector used to calculate vertex normal
-	int index5 = 0;
-	float six[] = {0, 0, 0};				// Sixth vector used to calculate vertex normal
-	int index6 = 0;
+	float vertexNormal[] 	= {0, 0, 0};		// Our final result for each vertex
+	float one[] 		= {0, 0, 0};		// First vector used to calculate vertex normal
+	int index1 		= 0;
+	float two[] 		= {0, 0, 0};		// Second vector used to calculate vertex normal
+	int index2 		= 0;
+	float three[] 		= {0, 0, 0};		// Third vector used to calculate vertex normal
+	int index3 		= 0;
+	float four[] 		= {0, 0, 0};		// Fourth vector used to calculate vertex normal
+	int index4 		= 0;
+	float five[] 		= {0, 0, 0};		// Fifth vector used to calculate vertex normal
+	int index5 		= 0;
+	float six[] 		= {0, 0, 0};		// Sixth vector used to calculate vertex normal
+	int index6 		= 0;
 	float magnitude;
 
 	// Iterate through the terrain
@@ -132,21 +132,21 @@ void setVertexNormals () {
 				index1 = getNormalIndex(x,z,'t',true);
 				index2 = getNormalIndex(x,z,'t',false);
 				one[0] = triangleNormals[index1];		one[1] = triangleNormals[index1+1]; 		one[2] = triangleNormals[index1+2];
-				two[0] = triangleNormals[index2];		two[1] = triangleNormals[index2+1];			two[2] = triangleNormals[index2+2];
+				two[0] = triangleNormals[index2];		two[1] = triangleNormals[index2+1];		two[2] = triangleNormals[index2+2];
 
 				// Sum the vectors
-				triangleVertexNormals[indexCounter] = one[0] + two[0];
-				triangleVertexNormals[indexCounter+1] = one[1] + two[1];
-				triangleVertexNormals[indexCounter+2] = one[2] + two[2];
+				triangleVertexNormals[indexCounter] 	= one[0] + two[0];
+				triangleVertexNormals[indexCounter+1] 	= one[1] + two[1];
+				triangleVertexNormals[indexCounter+2] 	= one[2] + two[2];
 
 				// Quads
 				index1 = getNormalIndex(x,z,'y',true);
-				one[0] = quadNormals[index1];			one[1] = quadNormals[index1+1]; 			one[2] = quadNormals[index1+2];
+				one[0] = quadNormals[index1];			one[1] = quadNormals[index1+1]; 		one[2] = quadNormals[index1+2];
 
 				// Sum the vectors
-				quadVertexNormals[indexCounter] = one[0];
-				quadVertexNormals[indexCounter+1] = one[1];
-				quadVertexNormals[indexCounter+2] = one[2];
+				quadVertexNormals[indexCounter] 	= one[0];
+				quadVertexNormals[indexCounter+1] 	= one[1];
+				quadVertexNormals[indexCounter+2] 	= one[2];
 			} 
 			else if (x == 0 & z == terrainDepth - 1) {
 				// Triangles
@@ -154,18 +154,18 @@ void setVertexNormals () {
 				one[0] = triangleNormals[index1];		one[1] = triangleNormals[index1+1]; 		one[2] = triangleNormals[index1+2];
 
 				// Sum the vectors
-				triangleVertexNormals[indexCounter] = one[0];
-				triangleVertexNormals[indexCounter+1] = one[1];
-				triangleVertexNormals[indexCounter+2] = one[2];
+				triangleVertexNormals[indexCounter] 	= one[0];
+				triangleVertexNormals[indexCounter+1] 	= one[1];
+				triangleVertexNormals[indexCounter+2] 	= one[2];
 
 				// Quads
 				index1 = getNormalIndex(x,z-1,'y',true);
-				one[0] = quadNormals[index1];			one[1] = quadNormals[index1+1]; 			one[2] = quadNormals[index1+2];
+				one[0] = quadNormals[index1];			one[1] = quadNormals[index1+1]; 		one[2] = quadNormals[index1+2];
 
 				// Sum the vectors
-				quadVertexNormals[indexCounter] = one[0];
-				quadVertexNormals[indexCounter+1] = one[1];
-				quadVertexNormals[indexCounter+2] = one[2];
+				quadVertexNormals[indexCounter] 	= one[0];
+				quadVertexNormals[indexCounter+1] 	= one[1];
+				quadVertexNormals[indexCounter+2] 	= one[2];
 			}
 			else if (x == terrainWidth - 1 && z == 0) {
 				// Triangles
@@ -173,39 +173,39 @@ void setVertexNormals () {
 				one[0] = triangleNormals[index1];		one[1] = triangleNormals[index1+1]; 		one[2] = triangleNormals[index1+2];
 
 				// Sum the vectors
-				triangleVertexNormals[indexCounter] = one[0];
-				triangleVertexNormals[indexCounter+1] = one[1];
-				triangleVertexNormals[indexCounter+2] = one[2];
+				triangleVertexNormals[indexCounter] 	= one[0];
+				triangleVertexNormals[indexCounter+1] 	= one[1];
+				triangleVertexNormals[indexCounter+2] 	= one[2];
 
 				// Quads
 				index1 = getNormalIndex(x-1,z,'y',true);
-				one[0] = quadNormals[index1];			one[1] = quadNormals[index1+1]; 			one[2] = quadNormals[index1+2];
+				one[0] = quadNormals[index1];			one[1] = quadNormals[index1+1]; 		one[2] = quadNormals[index1+2];
 
 				// Sum the vectors
-				quadVertexNormals[indexCounter] = one[0];
-				quadVertexNormals[indexCounter+1] = one[1];
-				quadVertexNormals[indexCounter+2] = one[2];
+				quadVertexNormals[indexCounter] 	= one[0];
+				quadVertexNormals[indexCounter+1] 	= one[1];
+				quadVertexNormals[indexCounter+2] 	= one[2];
 			}
 			else if (x == terrainWidth - 1 && z == terrainDepth - 1) {
 				// Triangles
 				index1 = getNormalIndex(x-1,z-1,'t',true);
 				index2 = getNormalIndex(x-1,z-1,'t',false);
 				one[0] = triangleNormals[index1];		one[1] = triangleNormals[index1+1]; 		one[2] = triangleNormals[index1+2];
-				two[0] = triangleNormals[index2];		two[1] = triangleNormals[index2+1];			two[2] = triangleNormals[index2+2];
+				two[0] = triangleNormals[index2];		two[1] = triangleNormals[index2+1];		two[2] = triangleNormals[index2+2];
 
 				// Sum the vectors
-				triangleVertexNormals[indexCounter] = one[0] + two[0];
-				triangleVertexNormals[indexCounter+1] = one[1] + two[1];
-				triangleVertexNormals[indexCounter+2] = one[2] + two[2];
+				triangleVertexNormals[indexCounter] 	= one[0] + two[0];
+				triangleVertexNormals[indexCounter+1] 	= one[1] + two[1];
+				triangleVertexNormals[indexCounter+2] 	= one[2] + two[2];
 
 				// Quads
 				index1 = getNormalIndex(x-1,z-1,'y',true);
-				one[0] = quadNormals[index1];			one[1] = quadNormals[index1+1]; 			one[2] = quadNormals[index1+2];
+				one[0] = quadNormals[index1];			one[1] = quadNormals[index1+1]; 		one[2] = quadNormals[index1+2];
 
 				// Sum the vectors
-				quadVertexNormals[indexCounter] = one[0];
-				quadVertexNormals[indexCounter+1] = one[1];
-				quadVertexNormals[indexCounter+2] = one[2];
+				quadVertexNormals[indexCounter] 	= one[0];
+				quadVertexNormals[indexCounter+1] 	= one[1];
+				quadVertexNormals[indexCounter+2] 	= one[2];
 			}
 
 			// Edges
@@ -216,23 +216,23 @@ void setVertexNormals () {
 				index3 = getNormalIndex(x,z,'t',true);
 				one[0] = triangleNormals[index1]; 		one[1] = triangleNormals[index1+1]; 		one[2] = triangleNormals[index1+2];
 				two[0] = triangleNormals[index2]; 		two[1] = triangleNormals[index2+1]; 		two[2] = triangleNormals[index2+2];
-				three[0] = triangleNormals[index3]; 	three[1] = triangleNormals[index3+1]; 		three[2] = triangleNormals[index3+2];
+				three[0] = triangleNormals[index3]; 		three[1] = triangleNormals[index3+1]; 		three[2] = triangleNormals[index3+2];
 
 				// Sum the vectors
-				triangleVertexNormals[indexCounter] = one[0] + two[0] + three[0];
-				triangleVertexNormals[indexCounter+1] = one[1] + two[1] + three[1];
-				triangleVertexNormals[indexCounter+2] = one[2] + two[2] + three[2];
+				triangleVertexNormals[indexCounter] 	= one[0] + two[0] + three[0];
+				triangleVertexNormals[indexCounter+1] 	= one[1] + two[1] + three[1];
+				triangleVertexNormals[indexCounter+2] 	= one[2] + two[2] + three[2];
 
 				// Quads
 				index1 = getNormalIndex(x,z-1,'y',true);
 				index2 = getNormalIndex(x,z,'y',true);
-				one[0] = quadNormals[index1]; 			one[1] = quadNormals[index1+1]; 			one[2] = quadNormals[index1+2];
-				two[0] = quadNormals[index2]; 			two[1] = quadNormals[index2+1];				two[2] = quadNormals[index2+2];
+				one[0] = quadNormals[index1]; 			one[1] = quadNormals[index1+1]; 		one[2] = quadNormals[index1+2];
+				two[0] = quadNormals[index2]; 			two[1] = quadNormals[index2+1];			two[2] = quadNormals[index2+2];
 
 				// Sum the vectors, and normalize the result
-				quadVertexNormals[indexCounter] = one[0] + two[0];
-				quadVertexNormals[indexCounter+1] = one[1] + two[1];
-				quadVertexNormals[indexCounter+2] = one[2] + two[2];
+				quadVertexNormals[indexCounter] 	= one[0] + two[0];
+				quadVertexNormals[indexCounter+1] 	= one[1] + two[1];
+				quadVertexNormals[indexCounter+2] 	= one[2] + two[2];
 			} 
 			else if (z == 0) {
 				// Triangles
@@ -241,23 +241,23 @@ void setVertexNormals () {
 				index3 = getNormalIndex(x,z,'t',false);
 				one[0] = triangleNormals[index1]; 		one[1] = triangleNormals[index1+1]; 		one[2] = triangleNormals[index1+2];
 				two[0] = triangleNormals[index2]; 		two[1] = triangleNormals[index2+1]; 		two[2] = triangleNormals[index2+2];
-				three[0] = triangleNormals[index3]; 	three[1] = triangleNormals[index3+1]; 		three[2] = triangleNormals[index3+2];
+				three[0] = triangleNormals[index3]; 		three[1] = triangleNormals[index3+1]; 		three[2] = triangleNormals[index3+2];
 
 				// Sum the vectors
-				triangleVertexNormals[indexCounter] = one[0] + two[0] + three[0];
-				triangleVertexNormals[indexCounter+1] = one[1] + two[1] + three[1];
-				triangleVertexNormals[indexCounter+2] = one[2] + two[2] + three[2];
+				triangleVertexNormals[indexCounter] 	= one[0] + two[0] + three[0];
+				triangleVertexNormals[indexCounter+1] 	= one[1] + two[1] + three[1];
+				triangleVertexNormals[indexCounter+2] 	= one[2] + two[2] + three[2];
 
 				// Quads
 				index1 = getNormalIndex(x-1,z,'y',true);
 				index2 = getNormalIndex(x,z,'y',true);
-				one[0] = quadNormals[index1]; 			one[1] = quadNormals[index1+1]; 			one[2] = quadNormals[index1+2];
-				two[0] = quadNormals[index2]; 			two[1] = quadNormals[index2+1]; 			two[2] = quadNormals[index2+2];
+				one[0] = quadNormals[index1]; 			one[1] = quadNormals[index1+1]; 		one[2] = quadNormals[index1+2];
+				two[0] = quadNormals[index2]; 			two[1] = quadNormals[index2+1]; 		two[2] = quadNormals[index2+2];
 
 				// Sum the vectors, and normalize the result
-				quadVertexNormals[indexCounter] = one[0] + two[0];
-				quadVertexNormals[indexCounter+1] = one[1] + two[1];
-				quadVertexNormals[indexCounter+2] = one[2] + two[2];
+				quadVertexNormals[indexCounter] 	= one[0] + two[0];
+				quadVertexNormals[indexCounter+1] 	= one[1] + two[1];
+				quadVertexNormals[indexCounter+2] 	= one[2] + two[2];
 			} 
 			else if (x == terrainWidth - 1) {
 				// Triangles
@@ -266,23 +266,23 @@ void setVertexNormals () {
 				index3 = getNormalIndex(x-1,z,'t',false);
 				one[0] = triangleNormals[index1]; 		one[1] = triangleNormals[index1+1]; 		one[2] = triangleNormals[index1+2];
 				two[0] = triangleNormals[index2]; 		two[1] = triangleNormals[index2+1]; 		two[2] = triangleNormals[index2+2];
-				three[0] = triangleNormals[index3]; 	three[1] = triangleNormals[index3+1]; 		three[2] = triangleNormals[index3+2];
+				three[0] = triangleNormals[index3]; 		three[1] = triangleNormals[index3+1]; 		three[2] = triangleNormals[index3+2];
 
 				// Sum the vectors
-				triangleVertexNormals[indexCounter] = one[0] + two[0] + three[0];
-				triangleVertexNormals[indexCounter+1] = one[1] + two[1] + three[1];
-				triangleVertexNormals[indexCounter+2] = one[2] + two[2] + three[2];
+				triangleVertexNormals[indexCounter] 	= one[0] + two[0] + three[0];
+				triangleVertexNormals[indexCounter+1] 	= one[1] + two[1] + three[1];
+				triangleVertexNormals[indexCounter+2] 	= one[2] + two[2] + three[2];
 
 				// Quads
 				index1 = getNormalIndex(x-1,z-1,'y',true);
 				index2 = getNormalIndex(x-1,z,'y',true);
-				one[0] = quadNormals[index1]; 			one[1] = quadNormals[index1 + 1]; 			one[2] = quadNormals[index1+2];
-				two[0] = quadNormals[index2]; 			two[1] = quadNormals[index2 + 1];			two[2] = quadNormals[index2+2];
+				one[0] = quadNormals[index1]; 			one[1] = quadNormals[index1 + 1]; 		one[2] = quadNormals[index1+2];
+				two[0] = quadNormals[index2]; 			two[1] = quadNormals[index2 + 1];		two[2] = quadNormals[index2+2];
 
 				// Sum the vectors, and normalize the result
-				quadVertexNormals[indexCounter] = one[0] + two[0];
-				quadVertexNormals[indexCounter+1] = one[1] + two[1];
-				quadVertexNormals[indexCounter+2] = one[2] + two[2];
+				quadVertexNormals[indexCounter] 	= one[0] + two[0];
+				quadVertexNormals[indexCounter+1] 	= one[1] + two[1];
+				quadVertexNormals[indexCounter+2] 	= one[2] + two[2];
 			} 
 			else if (z == terrainDepth - 1) {
 				// Triangles
@@ -291,23 +291,23 @@ void setVertexNormals () {
 				index3 = getNormalIndex(x,z-1,'t',true);
 				one[0] = triangleNormals[index1]; 		one[1] = triangleNormals[index1+1]; 		one[2] = triangleNormals[index1+2];
 				two[0] = triangleNormals[index2]; 		two[1] = triangleNormals[index2+1]; 		two[2] = triangleNormals[index2+2];
-				three[0] = triangleNormals[index3]; 	three[1] = triangleNormals[index3+1]; 		three[2] = triangleNormals[index3+2];
+				three[0] = triangleNormals[index3]; 		three[1] = triangleNormals[index3+1]; 		three[2] = triangleNormals[index3+2];
 
 				// Sum the vectors
-				triangleVertexNormals[indexCounter] = one[0] + two[0] + three[0];
-				triangleVertexNormals[indexCounter+1] = one[1] + two[1] + three[1];
-				triangleVertexNormals[indexCounter+2] = one[2] + two[2] + three[2];
+				triangleVertexNormals[indexCounter] 	= one[0] + two[0] + three[0];
+				triangleVertexNormals[indexCounter+1] 	= one[1] + two[1] + three[1];
+				triangleVertexNormals[indexCounter+2] 	= one[2] + two[2] + three[2];
 
 				// Quads
 				index1 = getNormalIndex(x-1,z-1,'y',true);
 				index2 = getNormalIndex(x,z-1,'y',true);
-				one[0] = quadNormals[index1]; 			one[1] = quadNormals[index1 + 1]; 			one[2] = quadNormals[index1 + 2];
-				two[0] = quadNormals[index2]; 			two[1] = quadNormals[index2 + 1];			two[2] = quadNormals[index2 + 2];
+				one[0] = quadNormals[index1]; 			one[1] = quadNormals[index1 + 1]; 		one[2] = quadNormals[index1 + 2];
+				two[0] = quadNormals[index2]; 			two[1] = quadNormals[index2 + 1];		two[2] = quadNormals[index2 + 2];
 
 				// Sum the vectors, and normalize the result
-				quadVertexNormals[indexCounter] = one[0] + two[0];
-				quadVertexNormals[indexCounter+1] = one[1] + two[1];
-				quadVertexNormals[indexCounter+2] = one[2] + two[2];
+				quadVertexNormals[indexCounter] 	= one[0] + two[0];
+				quadVertexNormals[indexCounter+1] 	= one[1] + two[1];
+				quadVertexNormals[indexCounter+2] 	= one[2] + two[2];
 			}
 
 			// General case for interior vertices
@@ -321,30 +321,30 @@ void setVertexNormals () {
 				index6 = getNormalIndex(x,z-1,'t',true);
 				one[0] = triangleNormals[index1]; 		one[1] = triangleNormals[index1 + 1]; 		one[2] = triangleNormals[index1 + 2];
 				two[0] = triangleNormals[index2]; 		two[1] = triangleNormals[index2 + 1]; 		two[2] = triangleNormals[index2 + 2];
-				three[0] = triangleNormals[index3]; 	three[1] = triangleNormals[index3 + 1]; 	three[2] = triangleNormals[index3 + 2];
+				three[0] = triangleNormals[index3]; 		three[1] = triangleNormals[index3 + 1]; 	three[2] = triangleNormals[index3 + 2];
 				four[0] = triangleNormals[index4]; 		four[1] = triangleNormals[index4 + 1]; 		four[2] = triangleNormals[index4 + 2];
 				five[0] = triangleNormals[index5]; 		five[1] = triangleNormals[index5 + 1]; 		five[2] = triangleNormals[index5 + 2];
 				six[0] = triangleNormals[index6]; 		six[1] = triangleNormals[index6 + 1]; 		six[2] = triangleNormals[index6 + 2];
 
 				// Sum the vectors, and normalize the result using the vector's magnitude
-				triangleVertexNormals[indexCounter] = one[0] + two[0] + three[0] + four[0] + five[0] + six[0];
-				triangleVertexNormals[indexCounter+1] = one[1] + two[1] + three[1] + four[1] + five[1] + six[1];
-				triangleVertexNormals[indexCounter+2] = one[2] + two[2] + three[2] + four[2] + five[2] + six[2];
+				triangleVertexNormals[indexCounter] 	= one[0] + two[0] + three[0] + four[0] + five[0] + six[0];
+				triangleVertexNormals[indexCounter+1] 	= one[1] + two[1] + three[1] + four[1] + five[1] + six[1];
+				triangleVertexNormals[indexCounter+2] 	= one[2] + two[2] + three[2] + four[2] + five[2] + six[2];
 
 				// For quads, we take the normals of the 4 surrounding faces, and calculate the vertex normal
 				index1 = getNormalIndex(x-1,z-1,'y',true);
 				index2 = getNormalIndex(x,z-1,'y',true);
 				index3 = getNormalIndex(x-1,z,'y',true);
 				index4 = getNormalIndex(x,z,'y',true);
-				one[0] = quadNormals[index1]; 			one[1] = quadNormals[index1+1]; 			one[2] = quadNormals[index1+2];
-				two[0] = quadNormals[index2]; 			two[1] = quadNormals[index2+1];				two[2] = quadNormals[index2+2];
-				three[0] = quadNormals[index3]; 		three[1] = quadNormals[index3+1]; 			three[2] = quadNormals[index3+2];
-				four[0] = quadNormals[index4]; 			four[1] = quadNormals[index4+1]; 			four[2] = quadNormals[index4+2];
+				one[0] = quadNormals[index1]; 			one[1] = quadNormals[index1+1]; 		one[2] = quadNormals[index1+2];
+				two[0] = quadNormals[index2]; 			two[1] = quadNormals[index2+1];			two[2] = quadNormals[index2+2];
+				three[0] = quadNormals[index3]; 		three[1] = quadNormals[index3+1]; 		three[2] = quadNormals[index3+2];
+				four[0] = quadNormals[index4]; 			four[1] = quadNormals[index4+1]; 		four[2] = quadNormals[index4+2];
 
 				// Sum the vectors, and normalize the result
-				quadVertexNormals[indexCounter] = one[0] + two[0] + three[0] + four[0];
-				quadVertexNormals[indexCounter+1] = one[1] + two[1] + three[1] + four[1];
-				quadVertexNormals[indexCounter+2] = one[2] + two[2] + three[2] + four[2];
+				quadVertexNormals[indexCounter] 	= one[0] + two[0] + three[0] + four[0];
+				quadVertexNormals[indexCounter+1] 	= one[1] + two[1] + three[1] + four[1];
+				quadVertexNormals[indexCounter+2] 	= one[2] + two[2] + three[2] + four[2];
 			}
 
 			// For the newest vertex, we find the magnitudes and normalize
@@ -444,9 +444,9 @@ void drawTerrain (char wireMode) {
 	// Render the terrain using the newly set polygon mode
 	// Draw by going through the triangle-strip pattern across the grid for each z.
 	for (int z = 0; z < terrainDepth; z++) {
-		int i = z;						// Models the depth (z)
-		int j = 0;						// Models the current width position (x)
-		int counter = 0;				// Counter for index modification
+		int i = z;				// Models the depth (z)
+		int j = 0;				// Models the current width position (x)
+		int counter = 0;			// Counter for index modification
 		int vertexNormalIndex = 0;
 
 		// Render a new strip for each z layer
@@ -548,7 +548,7 @@ void generateHeightValues (bool flatten) {
 			int randomX = rand() % terrainWidth;		// 0 to (width - 1)
 			int randomZ = rand() % terrainDepth;		// 0 to (depth - 1)
 			int index = getIndex(randomX, randomZ);		// Index of our random point in the height map
-			int randomY = heightMap[index];				// Height corresponding to our random point
+			int randomY = heightMap[index];			// Height corresponding to our random point
 
 			// Get a random circle size, set the centrepoint
 			int randomCircleSize = rand() % CIRCLE_RANGE + CIRCLE_MIN;
@@ -1076,10 +1076,10 @@ int main (int argc, char** argv) {
 	printf("Generation underway, please wait...\n");
 
 	// Declare the initial height map and normal arrays and generate the initial terrain
-	heightMap 				= new float [terrainWidth * terrainDepth];
-	triangleNormals 		= new float [3 * 2 * terrainWidth * terrainDepth];
-	quadNormals 			= new float [3 * terrainWidth * terrainDepth];
-	quadVertexNormals 		= new float [3 * terrainWidth * terrainDepth];
+	heightMap 		= new float [terrainWidth * terrainDepth];
+	triangleNormals 	= new float [3 * 2 * terrainWidth * terrainDepth];
+	quadNormals 		= new float [3 * terrainWidth * terrainDepth];
+	quadVertexNormals 	= new float [3 * terrainWidth * terrainDepth];
 	triangleVertexNormals 	= new float [3 * terrainWidth * terrainDepth];
 
 	generateHeightValues(true);
